@@ -35,7 +35,7 @@ object ELPProxy {
 
   // jsoniter_scala codecs boilerplate
 
-  private val typeDeclCodec: JsonValueCodec[TypeDecl] = JsonCodecMaker.make(
+  private val typeDeclCodec: JsonValueCodec[(TypeDecl, List[Variance])] = JsonCodecMaker.make(
     CodecMakerConfig
       .withMapMaxInsertNumber(65536)
       .withSetMaxInsertNumber(65536)
@@ -91,11 +91,7 @@ object ELPProxy {
         value
       case None =>
         val optTypeDecl =
-          Ipc.getTypeDecl(module, id).map { bytes =>
-            val decl = readFromArray[TypeDecl](bytes)(typeDeclCodec)
-            val variances = Variance.toVariances(decl.body, decl.params.map(_.n)).values.toList
-            (decl, variances)
-          }
+          Ipc.getTypeDecl(module, id).map(readFromArray[(TypeDecl, List[Variance])](_)(typeDeclCodec))
         typeDeclCache.put(key, optTypeDecl)
         optTypeDecl
   }

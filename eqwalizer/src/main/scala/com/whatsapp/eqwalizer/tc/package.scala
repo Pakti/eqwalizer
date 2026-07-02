@@ -7,7 +7,7 @@
 package com.whatsapp.eqwalizer
 
 import com.whatsapp.eqwalizer.ast.Types.Type
-import com.whatsapp.eqwalizer.ast.{TypeVars, Vars}
+import com.whatsapp.eqwalizer.ast.{Id, TypeVars, Vars}
 
 package object tc {
   type Env = Map[String, Type]
@@ -15,7 +15,12 @@ package object tc {
     val empty: Env = Map.empty
   }
 
-  case class Options(unlimitedRefinement: Option[Boolean] = None, exhaustiveCaseChecking: Option[Boolean] = None)
+  case class Options(
+      unlimitedRefinement: Option[Boolean] = None,
+      exhaustiveCaseChecking: Option[Boolean] = None,
+      disabledWarnings: Set[(String, Id)] = Set.empty,
+      privateConstructorOwners: Map[String, Set[String]] = Map.empty,
+  )
 
   val noOptions: Options = Options()
 

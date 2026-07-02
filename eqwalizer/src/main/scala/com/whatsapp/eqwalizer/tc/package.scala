@@ -18,7 +18,7 @@ package object tc {
   case class Options(
       unlimitedRefinement: Option[Boolean] = None,
       exhaustiveCaseChecking: Option[Boolean] = None,
-      disabledWarnings: Set[(String, Id)] = Set.empty,
+      disabledErrors: Set[(String, Id)] = Set.empty,
       privateConstructorOwners: Map[String, Set[String]] = Map.empty,
   )
 

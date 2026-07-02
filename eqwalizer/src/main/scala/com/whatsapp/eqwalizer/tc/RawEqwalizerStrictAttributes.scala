@@ -16,7 +16,7 @@ import scala.collection.mutable.ListBuffer
 import scala.util.control.NonFatal
 
 case class RawEqwalizerStrictAttributes(
-    disabledWarnings: Set[(String, Id)] = Set.empty,
+    disabledErrors: Set[(String, Id)] = Set.empty,
     privateConstructorOwners: Map[String, Set[String]] = Map.empty,
     invalids: List[Diagnostic] = Nil,
 )
@@ -24,8 +24,8 @@ case class RawEqwalizerStrictAttributes(
 object RawEqwalizerStrictAttributes {
   private val AttributeName = "eqwalizer_strict"
   private val AtomPattern = "[a-z][a-zA-Z0-9_@]*"
-  private val SupportedFlags = Set("disable_warning", "private_constructor")
-  private val SupportedWarnings = Set("skipped_exhaustiveness_check")
+  private val SupportedFlags = Set("disable_error", "private_constructor")
+  private val SupportedErrors = Set("skipped_exhaustiveness_check")
 
   private case class SourceLine(text: String, startByte: Int, endByte: Int) {
     val pos: Pos = Pos.TextRange(startByte, endByte)
@@ -60,7 +60,7 @@ object RawEqwalizerStrictAttributes {
 
   private def parse(text: String): RawEqwalizerStrictAttributes = {
     val lines = sourceLines(text)
-    var disabledWarnings = Set.empty[(String, Id)]
+    var disabledErrors = Set.empty[(String, Id)]
     var privateConstructorOwners = Map.empty[String, Set[String]]
     val invalids = ListBuffer.empty[Diagnostic]
     var i = 0
@@ -68,21 +68,21 @@ object RawEqwalizerStrictAttributes {
     while (i < lines.size) {
       val line = lines(i)
       line.text match {
-        case Directive(flag, args) if flag == "disable_warning" =>
-          val warningName = Option(args).map(_.trim).getOrElse("")
-          if (!SupportedWarnings.contains(warningName)) {
+        case Directive(flag, args) if flag == "disable_error" =>
+          val errorName = Option(args).map(_.trim).getOrElse("")
+          if (!SupportedErrors.contains(errorName)) {
             invalids.addOne(
               InvalidEqwalizerStrictAttribute(
                 line.pos,
                 line.text,
-                s"unsupported warning `$warningName`; supported warnings are: ${SupportedWarnings.toList.sorted.mkString(", ")}",
+                s"unsupported error `$errorName`; supported errors are: ${SupportedErrors.toList.sorted.mkString(", ")}",
               )
             )
             i += 1
           } else {
-            parseDisableWarning(lines, i, warningName) match {
+            parseDisableError(lines, i, errorName) match {
               case Right((id, nextIndex)) =>
-                disabledWarnings += ((warningName, id))
+                disabledErrors += ((errorName, id))
                 i = nextIndex
               case Left(reason) =>
                 invalids.addOne(InvalidEqwalizerStrictAttribute(line.pos, line.text, reason))
@@ -140,18 +140,18 @@ object RawEqwalizerStrictAttributes {
       }
     }
 
-    RawEqwalizerStrictAttributes(disabledWarnings, privateConstructorOwners, invalids.toList)
+    RawEqwalizerStrictAttributes(disabledErrors, privateConstructorOwners, invalids.toList)
   }
 
-  private def parseDisableWarning(lines: List[SourceLine], directiveIndex: Int, warningName: String): Either[String, (Id, Int)] = {
+  private def parseDisableError(lines: List[SourceLine], directiveIndex: Int, errorName: String): Either[String, (Id, Int)] = {
     val specIndex = directiveIndex + 1
     if (!lines.isDefinedAt(specIndex) || !isSpecStart(lines(specIndex).text))
-      Left("disable_warning must be immediately followed by a -spec")
+      Left("disable_error must be immediately followed by a -spec")
     else {
       val (specText, nextIndex) = collectSpec(lines, specIndex)
       parseSpecId(specText) match {
         case Some(id) => Right((id, nextIndex))
-        case None     => Left(s"could not parse -spec following disable_warning for `$warningName`")
+        case None     => Left(s"could not parse -spec following disable_error for `$errorName`")
       }
     }
   }
@@ -236,8 +236,8 @@ object RawEqwalizerStrictAttributes {
 
   private def expectedSyntax(flag: String): String =
     flag match {
-      case "disable_warning" =>
-        "expected % eqwalizer_strict:disable_warning skipped_exhaustiveness_check immediately followed by a -spec"
+      case "disable_error" =>
+        "expected % eqwalizer_strict:disable_error skipped_exhaustiveness_check immediately followed by a -spec"
       case "private_constructor" =>
         "expected % eqwalizer_strict:private_constructor OwnerModule immediately followed by a -record"
       case _ =>

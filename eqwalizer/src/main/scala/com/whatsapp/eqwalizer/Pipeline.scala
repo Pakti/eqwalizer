@@ -28,7 +28,7 @@ object Pipeline {
     val erlFile = forms.collectFirst { case File(f, _) => f }.get
     val rawStrictAttributes = RawEqwalizerStrictAttributes.load(erlFile)
     val optionsWithStrictAttributes = options.copy(
-      disabledWarnings = options.disabledWarnings ++ rawStrictAttributes.disabledWarnings,
+      disabledErrors = options.disabledErrors ++ rawStrictAttributes.disabledErrors,
       privateConstructorOwners = mergePrivateConstructorOwners(
         options.privateConstructorOwners,
         rawStrictAttributes.privateConstructorOwners,
@@ -49,7 +49,7 @@ object Pipeline {
             if (unlimitedRefinementFuns(f.id)) optionsWithStrictAttributes.copy(unlimitedRefinement = Some(true))
             else optionsWithStrictAttributes
           val fErrors = checkFunction(module, f, options1)
-            .filterNot(error => options1.disabledWarnings.contains(error.errorName -> f.id))
+            .filterNot(error => options1.disabledErrors.contains(error.errorName -> f.id))
           if (noCheckFuns.contains(f.id)) {
             if (fErrors.isEmpty)
               result.addOne(RedundantNowarnFunction(noCheckFuns(f.id)))

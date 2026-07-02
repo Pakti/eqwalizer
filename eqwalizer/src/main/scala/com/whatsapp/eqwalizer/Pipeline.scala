@@ -26,7 +26,8 @@ object Pipeline {
     val forms = Forms.load(moduleName)
     val module = forms.collectFirst { case Module(m) => m }.get
     val erlFile = forms.collectFirst { case File(f, _) => f }.get
-    val rawStrictAttributes = RawEqwalizerStrictAttributes.load(erlFile)
+    val sourceFiles = forms.collect { case File(f, _) => f }.distinct
+    val rawStrictAttributes = loadRawStrictAttributes(sourceFiles)
     val optionsWithStrictAttributes = options.copy(
       disabledErrors = options.disabledErrors ++ rawStrictAttributes.disabledErrors,
       privateConstructorOwners = mergePrivateConstructorOwners(
@@ -108,6 +109,19 @@ object Pipeline {
     ctx.check.checkOverloadedFun(f, overloadedSpec)
     ctx.diagnosticsInfo.popErrors()
   }
+
+  private def loadRawStrictAttributes(sourceFiles: List[String]): RawEqwalizerStrictAttributes =
+    sourceFiles.map(RawEqwalizerStrictAttributes.load).foldLeft(RawEqwalizerStrictAttributes())(mergeRawStrictAttributes)
+
+  private def mergeRawStrictAttributes(
+      lhs: RawEqwalizerStrictAttributes,
+      rhs: RawEqwalizerStrictAttributes,
+  ): RawEqwalizerStrictAttributes =
+    RawEqwalizerStrictAttributes(
+      disabledErrors = lhs.disabledErrors ++ rhs.disabledErrors,
+      privateConstructorOwners = mergePrivateConstructorOwners(lhs.privateConstructorOwners, rhs.privateConstructorOwners),
+      invalids = lhs.invalids ++ rhs.invalids,
+    )
 
   private def mergePrivateConstructorOwners(
       lhs: Map[String, Set[String]],

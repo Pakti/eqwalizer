@@ -16,18 +16,10 @@ class Util(pipelineContext: PipelineContext) {
   private var recordCache: Map[(String, String), Option[RecDecl]] = Map.empty
 
   private lazy val privateConstructorOwners: Map[String, Set[String]] =
-    mergePrivateConstructorOwners(PrivateConstructorsManifest.load(), pipelineContext.options.privateConstructorOwners)
+    pipelineContext.options.privateConstructorOwners
 
   def privateConstructorOwnersFor(recordName: String): Set[String] =
     privateConstructorOwners.getOrElse(recordName, Set.empty)
-
-  private def mergePrivateConstructorOwners(
-      lhs: Map[String, Set[String]],
-      rhs: Map[String, Set[String]],
-  ): Map[String, Set[String]] =
-    (lhs.keySet ++ rhs.keySet).map { key =>
-      key -> (lhs.getOrElse(key, Set.empty) ++ rhs.getOrElse(key, Set.empty))
-    }.toMap
 
   def globalFunId(module: String, id: Id): RemoteId = {
     val imports = Db.getImports(module).get

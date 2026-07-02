@@ -4,7 +4,7 @@
  * the LICENSE file in the root directory of this source tree.
  */
 
-name := "eqwalizer"
+name := "eqwalizer-strict"
 
 scalaVersion := "3.6.4"
 
@@ -43,6 +43,6 @@ initialize := {
   assert(specVersion.toDouble >= 11, "Java 11 or above is required to run this project.")
 }
 
-assembly / assemblyJarName := "eqwalizer.jar"
+assembly / assemblyJarName := "eqwalizer-strict.jar"
 
 assembly / mainClass  := Some("com.whatsapp.eqwalizer.Main")

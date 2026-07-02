@@ -16,7 +16,7 @@ class Util(pipelineContext: PipelineContext) {
   private var recordCache: Map[(String, String), Option[RecDecl]] = Map.empty
 
   private lazy val privateConstructorOwners: Map[String, Set[String]] =
-    PrivateConstructorsManifest.load()
+    pipelineContext.options.privateConstructorOwners
 
   def privateConstructorOwnersFor(recordName: String): Set[String] =
     privateConstructorOwners.getOrElse(recordName, Set.empty)

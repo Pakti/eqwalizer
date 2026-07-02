@@ -50,12 +50,20 @@ object RawEqwalizerStrictAttributes {
     override val erroneousExpr: Option[Expr] = None
   }
 
+  case class UnreadableEqwalizerStrictFile(path: String, reason: String) extends Diagnostic {
+    override val pos: Pos = Pos.TextRange(0, 0)
+    override val msg: String = s"Could not read source file for eqwalizer_strict directives: $path\nReason: $reason"
+    override val errorName: String = "unreadable_eqwalizer_strict_file"
+    override val erroneousExpr: Option[Expr] = None
+  }
+
   def load(path: String): RawEqwalizerStrictAttributes =
     try {
       val bytes = Files.readAllBytes(Paths.get(path))
       parse(new String(bytes, StandardCharsets.UTF_8))
     } catch {
-      case NonFatal(_) => RawEqwalizerStrictAttributes()
+      case NonFatal(e) =>
+        RawEqwalizerStrictAttributes(invalids = List(UnreadableEqwalizerStrictFile(path, e.getMessage)))
     }
 
   private def parse(text: String): RawEqwalizerStrictAttributes = {

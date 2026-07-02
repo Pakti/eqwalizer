@@ -12,7 +12,7 @@ import com.whatsapp.eqwalizer.ast.InvalidDiagnostics.Invalid
 import com.whatsapp.eqwalizer.ast.Types.{DynamicType, FunType}
 import com.whatsapp.eqwalizer.ast.stub.Db
 import com.whatsapp.eqwalizer.tc.TcDiagnostics.*
-import com.whatsapp.eqwalizer.tc.{Options, PipelineContext, noOptions}
+import com.whatsapp.eqwalizer.tc.{Options, PipelineContext, RawEqwalizerStrictAttributes, noOptions}
 import com.whatsapp.eqwalizer.util.Diagnostic.Diagnostic
 
 import scala.collection.mutable.ListBuffer
@@ -26,18 +26,28 @@ object Pipeline {
     val forms = Forms.load(moduleName)
     val module = forms.collectFirst { case Module(m) => m }.get
     val erlFile = forms.collectFirst { case File(f, _) => f }.get
+    val rawStrictAttributes = RawEqwalizerStrictAttributes.load(erlFile)
+    val optionsWithStrictAttributes = options.copy(
+      disabledWarnings = options.disabledWarnings ++ rawStrictAttributes.disabledWarnings,
+      privateConstructorOwners = mergePrivateConstructorOwners(
+        options.privateConstructorOwners,
+        rawStrictAttributes.privateConstructorOwners,
+      ),
+    )
     val meta = forms.collectFirst { case meta: ElpMetadata => meta }
     var noCheckFuns = forms.collect { case f: EqwalizerNowarnFunction => (f.id, f.pos) }.toMap
     val unlimitedRefinementFuns = forms.collect { case EqwalizerUnlimitedRefinement(id) => id }.toSet
     var currentFile = erlFile
     val result = ListBuffer.empty[Diagnostic]
+    result.addAll(rawStrictAttributes.invalids)
     for (form <- forms)
       form match {
         case f @ File(path, _) =>
           currentFile = path
         case f: FunDecl if currentFile == erlFile =>
           val options1 =
-            if (unlimitedRefinementFuns(f.id)) options.copy(unlimitedRefinement = Some(true)) else options
+            if (unlimitedRefinementFuns(f.id)) optionsWithStrictAttributes.copy(unlimitedRefinement = Some(true))
+            else optionsWithStrictAttributes
           val fErrors = checkFunction(module, f, options1)
           if (noCheckFuns.contains(f.id)) {
             if (fErrors.isEmpty)
@@ -47,7 +57,7 @@ object Pipeline {
         case b: Behaviour =>
           Db.getCallbacks(b.name) match {
             case Some((callbacks, optional)) =>
-              val ctx = PipelineContext(module, options)
+              val ctx = PipelineContext(module, optionsWithStrictAttributes)
               result.addAll(
                 callbacks.flatMap { cb =>
                   ctx.checkCallback.checkImpl(module, b, cb, optional(cb.id))
@@ -97,6 +107,14 @@ object Pipeline {
     ctx.check.checkOverloadedFun(f, overloadedSpec)
     ctx.diagnosticsInfo.popErrors()
   }
+
+  private def mergePrivateConstructorOwners(
+      lhs: Map[String, Set[String]],
+      rhs: Map[String, Set[String]],
+  ): Map[String, Set[String]] =
+    (lhs.keySet ++ rhs.keySet).map { key =>
+      key -> (lhs.getOrElse(key, Set.empty) ++ rhs.getOrElse(key, Set.empty))
+    }.toMap
 
   private def applyFixmes(
       errors: List[Diagnostic],

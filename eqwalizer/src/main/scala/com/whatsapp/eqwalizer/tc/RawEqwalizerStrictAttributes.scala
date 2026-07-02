@@ -63,7 +63,7 @@ object RawEqwalizerStrictAttributes {
         val pos = Pos.TextRange(start, end)
         line match {
           case DisableWarning(warningName, funName, arity) =>
-            disabledWarnings += warningName -> Id(funName, arity.toInt)
+            disabledWarnings += ((warningName, Id(funName, arity.toInt)))
           case PrivateConstructor(recordName, ownerModule) =>
             val owners = privateConstructorOwners.getOrElse(recordName, Set.empty)
             privateConstructorOwners += recordName -> (owners + ownerModule)

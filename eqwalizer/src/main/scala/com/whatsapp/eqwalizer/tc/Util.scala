@@ -113,11 +113,11 @@ class Util(pipelineContext: PipelineContext) {
   }
 
   def isFunType(ty: Type, arity: Int): Boolean = ty match {
-    case FunType(_, argTys) if argTys.size == arity => true
-    case DynamicType                                => true
-    case NoneType                                   => true
-    case AnyFunType                                 => true
-    case AnyArityFunType(_)                         => true
+    case FunType(_, argTys, _) if argTys.size == arity => true
+    case DynamicType                                   => true
+    case NoneType                                      => true
+    case AnyFunType                                    => true
+    case AnyArityFunType(_)                            => true
     case RemoteType(rid, argTys) =>
       val body = getTypeDeclBody(rid, argTys)
       isFunType(body, arity)
